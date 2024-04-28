@@ -259,6 +259,30 @@ class MeilisearchQueryTest extends TestCase
         $this->assertEquals(["'category' = 'phones'"], $query->getSearchFiltersForMetadata());
     }
 
+    public function testAnotherQueryForMetadataMultipleWheres()
+    {
+        $query = MeilisearchQuery::index('products')
+            ->where('category', '=', 'phones')
+            ->keepFacetsInMetadata(function ($q) {
+                $q->where('color', '=', 'yellow');
+                $q->where('size', '=', 'XL');
+            })
+            ->setFacets([
+                'color',
+                'brand',
+                'size',
+            ]);
+
+        $main_query = $query->getMeilisearchDataForMainQuery();
+        $meta_query = $query->getMeilisearchDataForMetadataQueries();
+
+        $this->assertEquals(2, count($meta_query));
+
+        $this->assertEquals(["'category' = 'phones'","('color' = 'yellow' AND 'size' = 'XL')"], $main_query['filter']);
+        $this->assertEquals(["'category' = 'phones'","('size' = 'XL')"], $meta_query[0]['filter']);
+        $this->assertEquals(["'category' = 'phones'","('color' = 'yellow')"], $meta_query[1]['filter']);
+    }
+
     public function testQueryDeletesDocuments()
     {
         Meilisearch::shouldReceive('deleteFromQuery')

@@ -150,7 +150,7 @@ class ParseToSearchFilters
                 continue;
             }
 
-            if ($where_index > 0) {
+            if (strlen($expression) > 1) {
                 $expression .= " " . ($where['boolean'] ?? "AND") . " ";
             }
 
