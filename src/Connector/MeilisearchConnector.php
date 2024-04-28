@@ -20,6 +20,7 @@ use Eelcol\LaravelMeilisearch\Exceptions\IncorrectMeilisearchKey;
 use Eelcol\LaravelMeilisearch\Exceptions\IndexAlreadyExists;
 use Eelcol\LaravelMeilisearch\Exceptions\IndexNotFound;
 use Eelcol\LaravelMeilisearch\Exceptions\InvalidParameterSupplied;
+use Eelcol\LaravelMeilisearch\Exceptions\InvalidQuery;
 use Eelcol\LaravelMeilisearch\Exceptions\MissingDocumentId;
 use Eelcol\LaravelMeilisearch\Exceptions\NoMeilisearchHostGiven;
 use Eelcol\LaravelMeilisearch\Exceptions\NotEnoughDocumentsToOrderRandomly;
@@ -332,6 +333,7 @@ class MeilisearchConnector
      * @throws CannotFilterOnAttribute
      * @throws CannotSortByAttribute
      * @throws CannotSearchOnAttribute
+     * @throws InvalidQuery
      */
     public function searchDocuments(MeilisearchQuery $query): MeilisearchQueryCollection
     {
@@ -366,17 +368,19 @@ class MeilisearchConnector
         if ($response->clientError()) {
             $message = $response->json('message');
 
-            if (preg_match("/Attribute `(.*)` is not filterable/", $message, $matches)) {
+            if (preg_match("/Attribute `(.*)` is not filterable/i", $message, $matches)) {
                 throw new CannotFilterOnAttribute($matches[1]);
             }
 
-            if (preg_match("/Attribute `(.*)` is not sortable/", $message, $matches)) {
+            if (preg_match("/Attribute `(.*)` is not sortable/i", $message, $matches)) {
                 throw new CannotSortByAttribute($matches[1]);
             }
 
-            if (preg_match("/Attribute `(.*)` is not searchable/", $message, $matches)) {
+            if (preg_match("/Attribute `(.*)` is not searchable/i", $message, $matches)) {
                 throw new CannotSearchOnAttribute($matches[1]);
             }
+
+            throw new InvalidQuery($message);
         }
 
         return (new MeilisearchQueryCollection($response));
