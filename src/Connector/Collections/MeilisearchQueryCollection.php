@@ -16,6 +16,8 @@ class MeilisearchQueryCollection extends MeilisearchCollection
 
     protected array $facetDistribution = [];
 
+    protected bool $multisearch = false;
+
     public function __construct(?Response $data = null)
     {
         $hits = [];
@@ -26,6 +28,7 @@ class MeilisearchQueryCollection extends MeilisearchCollection
             if ($results) {
                 // query result with multiple results
                 // happens after query-ing `multi-search` endpoint
+                $this->multisearch = true;
                 $hits = $results[0]['hits'];
 
                 if (isset($results[0]['facetDistribution'])) {
@@ -74,11 +77,19 @@ class MeilisearchQueryCollection extends MeilisearchCollection
             return null;
         }
 
+        if ($this->multisearch) {
+            return $this->result->json('results.0.totalHits');
+        }
+
         return $this->result->json('totalHits') ?? $this->result->json('estimatedTotalHits');
     }
 
     public function hasNextPage(): bool
     {
+        if ($this->multisearch) {
+            return $this->result->json('results.0.page') < $this->result->json('results.0.totalPages');
+        }
+
         if (!$this->result->json('page') || !$this->result->json('totalPages')) {
             return false;
         }

@@ -4,12 +4,25 @@ namespace Eelcol\LaravelMeilisearch\Tests\Unit\Support;
 
 use Eelcol\LaravelMeilisearch\Connector\Facades\Meilisearch;
 use Eelcol\LaravelMeilisearch\Connector\Facades\MeilisearchQuery;
+use Eelcol\LaravelMeilisearch\Connector\MeilisearchConnector;
 use Eelcol\LaravelMeilisearch\Exceptions\InvalidOrdering;
 use Eelcol\LaravelMeilisearch\Exceptions\InvalidWhereBoolean;
 use Eelcol\LaravelMeilisearch\Tests\TestCase;
+use Illuminate\Support\Facades\Http;
 
 class MeilisearchQueryTest extends TestCase
 {
+    public function setUp(): void
+    {
+        parent::setUp();
+
+        // additional setup
+        app()->instance(
+            'meilisearch',
+            new MeilisearchConnector(['host' => 'http://meilisearch:7700', 'key' => 123])
+        );
+    }
+
     public function testFacetsDistribution()
     {
         $facets = MeilisearchQuery::index('products')
@@ -281,6 +294,105 @@ class MeilisearchQueryTest extends TestCase
         $this->assertEquals(["'category' = 'phones'","('color' = 'yellow' AND 'size' = 'XL')"], $main_query['filter']);
         $this->assertEquals(["'category' = 'phones'","('size' = 'XL')"], $meta_query[0]['filter']);
         $this->assertEquals(["'category' = 'phones'","('color' = 'yellow')"], $meta_query[1]['filter']);
+    }
+
+    public function testPaginationUsageWhenQueryingIndex()
+    {
+        Http::fake([
+            'http://meilisearch:7700/indexes/*/search' => Http::response([
+                'hits' => [
+                    ['title' => 'Product #1', 'brand' => 'Apple'],
+                    ['title' => 'Product #2', 'brand' => 'Apple'],
+                    ['title' => 'Product #3', 'brand' => 'Samsung'],
+                    ['title' => 'Product #4', 'brand' => 'Apple'],
+                    ['title' => 'Product #5', 'brand' => 'Samsumg'],
+                ],
+                'processingTimeMs' => 1,
+                'hitsPerPage' => 5,
+                'page' => 1,
+                'totalPages' => 3,
+                'totalHits' => 12,
+                'facetDistribution' => [
+                    'brand' => [
+                        'apple' => 8,
+                        'samsung' => 4,
+                    ],
+                ],
+            ], 200),
+            '*' => Http::response([], 500),
+        ]);
+
+        $products = MeilisearchQuery::index('products');
+        $products->whereIn("brand", ["apple","samsung"]);
+        $products->setFacets(['brand']);
+        $result = $products->paginate(5);
+
+        $this->assertTrue($result->hasNextPage());
+        $this->assertEquals(12, $result->totalCount());
+    }
+
+    public function testPaginationUsageWhenQueryingMultiSearch()
+    {
+        Http::fake([
+            'http://meilisearch:7700/multi-search' => Http::response([
+                'results' => [
+                    [
+                        'indexUid' => 'products',
+                        'hits' => [
+                            ['title' => 'Product #1', 'brand' => 'Apple', 'color' => 'yellow'],
+                            ['title' => 'Product #2', 'brand' => 'Apple', 'color' => 'yellow'],
+                            ['title' => 'Product #3', 'brand' => 'Samsung', 'color' => 'yellow'],
+                            ['title' => 'Product #4', 'brand' => 'Apple', 'color' => 'yellow'],
+                            ['title' => 'Product #5', 'brand' => 'Samsumg', 'color' => 'yellow'],
+                        ],
+                        'processingTimeMs' => 1,
+                        'hitsPerPage' => 5,
+                        'page' => 1,
+                        'totalPages' => 3,
+                        'totalHits' => 12,
+                        'facetDistribution' => [
+                            'brand' => [
+                                'apple' => 8,
+                                'samsung' => 4,
+                            ],
+                        ],
+                    ],
+                    [
+                        'indexUid' => 'products',
+                        'hits' => [
+                            ['title' => 'Product #1', 'brand' => 'Apple', 'color' => 'yellow'],
+                            ['title' => 'Product #2', 'brand' => 'Apple', 'color' => 'yellow'],
+                            ['title' => 'Product #3', 'brand' => 'Samsung', 'color' => 'yellow'],
+                            ['title' => 'Product #4', 'brand' => 'Apple', 'color' => 'yellow'],
+                            ['title' => 'Product #5', 'brand' => 'Samsumg', 'color' => 'yellow'],
+                        ],
+                        'processingTimeMs' => 1,
+                        'hitsPerPage' => 5,
+                        'page' => 1,
+                        'totalPages' => 3,
+                        'totalHits' => 12,
+                        'facetDistribution' => [
+                            'brand' => [
+                                'apple' => 8,
+                                'samsung' => 4,
+                            ],
+                        ],
+                    ],
+                ],
+            ], 200),
+            '*' => Http::response([], 500),
+        ]);
+
+        $products = MeilisearchQuery::index('products');
+        $products->whereIn("brand", ["apple","samsung"]);
+        $products->keepFacetsInMetadata(function ($q) {
+            $q->where('color', '=', 'red');
+        });
+        $products->setFacets(['brand']);
+        $result = $products->paginate(5);
+
+        $this->assertEquals(12, $result->totalCount());
+        $this->assertTrue($result->hasNextPage());
     }
 
     public function testQueryDeletesDocuments()

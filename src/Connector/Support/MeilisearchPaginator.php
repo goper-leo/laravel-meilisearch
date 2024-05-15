@@ -11,6 +11,10 @@ use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Pagination\Paginator;
 use IteratorAggregate;
 
+/**
+ * @method bool hasNextPage()
+ * @method int|null totalCount()
+ */
 class MeilisearchPaginator implements Arrayable, ArrayAccess, Countable, IteratorAggregate
 {
     protected MeilisearchQuery $query;
