@@ -9,6 +9,7 @@ use Eelcol\LaravelMeilisearch\Connector\Traits\HandlesErrors;
 use Eelcol\LaravelMeilisearch\Exceptions\IndexAlreadyExists;
 use Eelcol\LaravelMeilisearch\Exceptions\IndexNotFound;
 use Eelcol\LaravelMeilisearch\Exceptions\MissingDocumentId;
+use Eelcol\LaravelMeilisearch\Exceptions\TaskFailed;
 
 class MeilisearchTask extends MeilisearchModel
 {
@@ -43,6 +44,26 @@ class MeilisearchTask extends MeilisearchModel
         }
 
         return $this;
+    }
+
+    /**
+     * @throws MissingDocumentId
+     * @throws IndexNotFound
+     * @throws IndexAlreadyExists
+     * @throws TaskFailed
+     */
+    public function wait(): void
+    {
+        $this->checkStatus();
+        while ($this->isNotSucceeded()) {
+            if ($this->isFailed()) {
+                throw new TaskFailed();
+            }
+
+            // wait 1 second
+            sleep(1);
+            $this->checkStatus();
+        }
     }
 
     public function getData(): array

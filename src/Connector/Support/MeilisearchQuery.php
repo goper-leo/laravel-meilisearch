@@ -515,7 +515,7 @@ class MeilisearchQuery
             $queries[] = [
                     'indexUid' => $this->getIndex(),
                     'q' => $this->getSearchQuery(),
-                    'limit' => 1,
+                    'limit' => 0,
                 ] + [
                     'filter' => $this->getSearchFiltersExcludeColumn($searchColumn),
                     'facets' => [$searchColumn],
