@@ -22,7 +22,7 @@ class MeilisearchModel implements ArrayAccess
 
     public function offsetSet($offset, $value): void
     {
-        // cannot set
+        $this->data[$offset] = $value;
     }
 
     public function offsetExists(mixed $offset): bool
@@ -32,7 +32,7 @@ class MeilisearchModel implements ArrayAccess
 
     public function offsetUnset(mixed $offset): void
     {
-        // cannot unset
+        unset($this->data[$offset]);
     }
 
     public function offsetGet(mixed $offset): mixed

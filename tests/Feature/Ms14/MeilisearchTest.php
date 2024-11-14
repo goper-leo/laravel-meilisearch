@@ -7,10 +7,16 @@ use Eelcol\LaravelMeilisearch\Connector\Facades\MeilisearchQuery;
 use Eelcol\LaravelMeilisearch\Connector\MeilisearchConnector;
 use Eelcol\LaravelMeilisearch\Tests\TestCase;
 
-class MetadataTest extends TestCase
+class MeilisearchTest extends TestCase
 {
+    protected bool $filled = false;
+
     protected function fillMeilisearch(): void
     {
+        if ($this->filled) {
+            return;
+        }
+
         // create connection
         $connector = new MeilisearchConnector([
             'host' => 'http://meilisearch142:7700',
@@ -62,6 +68,8 @@ class MetadataTest extends TestCase
         }
 
         Meilisearch::addDocuments("products", $documents)->wait();
+
+        $this->filled = true;
     }
 
     /**
@@ -88,6 +96,35 @@ class MetadataTest extends TestCase
             ->setFacets(['categories'])
             ->get();
 
-        $this->assertEquals($result1->count(), $result2->count());
+        $this->assertEquals(12, $result1->count());
+        $this->assertEquals(12, $result2->count());
+    }
+
+    public function testPagination()
+    {
+        $this->fillMeilisearch();
+
+        $result1 = MeilisearchQuery::index('products')
+            ->whereIn('categories', ['phones','tablets'])
+            ->where('color', '=', 'red')
+            ->setFacets(['categories'])
+            ->paginate(10);
+
+        $result2 = MeilisearchQuery::index('products')
+            ->whereIn('categories', ['phones','tablets'])
+            ->keepFacetsInMetadata(function ($q) {
+                $q->where('color', '=', 'red');
+            })
+            ->setFacets(['categories'])
+            ->paginate(10);
+
+        $this->assertEquals(true, $result1->hasNextPage());
+        $this->assertEquals(true, $result2->hasNextPage());
+
+        $this->assertEquals(12, $result1->totalCount());
+        $this->assertEquals(12, $result2->totalCount());
+
+        $this->assertEquals(10, $result1->count());
+        $this->assertEquals(10, $result2->count());
     }
 }
