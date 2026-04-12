@@ -17,6 +17,7 @@ class MeilisearchDocumentsCollection extends MeilisearchCollection
     protected ?int $totalPages;
     protected ?int $currentPage;
     protected ?int $hitsPerPage;
+    protected ?int $totalHits;
 
     public function __construct(string $index, MeilisearchResponse $results)
     {
@@ -24,6 +25,7 @@ class MeilisearchDocumentsCollection extends MeilisearchCollection
         $this->totalPages = $results->getTotalPages();
         $this->currentPage = $results->getCurrentPage();
         $this->hitsPerPage = $results->getHitsPerPage();
+        $this->totalHits = $results->getTotalHits();
 
         $data = [];
         foreach ($results as $item) {
@@ -37,6 +39,16 @@ class MeilisearchDocumentsCollection extends MeilisearchCollection
     public function hasNextPage(): bool
     {
         return $this->totalPages && $this->currentPage < $this->totalPages;
+    }
+
+    public function totalCount(): int
+    {
+        return $this->totalHits ?? 0;
+    }
+
+    public function currentPage(): int
+    {
+        return $this->currentPage ?? 1;
     }
 
     public function getNextPage(): self

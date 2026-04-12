@@ -82,7 +82,7 @@ class MeilisearchConnector
      * @throws IndexNotFound
      * @throws IndexAlreadyExists
      */
-    protected function postRequest(string $path, array $options = []): MeilisearchResponse
+    protected function postRequest(string $path, array|object $options = []): MeilisearchResponse
     {
         $response = $this->connection()->post($path, $options);
 
@@ -261,7 +261,7 @@ class MeilisearchConnector
      */
     public function getDocuments(string $index, array $query = []): MeilisearchDocumentsCollection
     {
-        $response = $this->postRequest("indexes/" . $index . "/documents/fetch", $query);
+        $response = $this->postRequest("indexes/" . $index . "/documents/fetch", (object) $query);
         if ($response->hasError()) {
             throw new InvalidParameterSupplied($response->getErrorMessage());
         }

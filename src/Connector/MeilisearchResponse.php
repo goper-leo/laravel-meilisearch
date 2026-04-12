@@ -46,28 +46,55 @@ class MeilisearchResponse implements ArrayAccess, IteratorAggregate, Countable
         return $this->data;
     }
 
+    /**
+     * Get the current page number (1-indexed)
+     */
     public function getCurrentPage(): ?int
     {
-        return $this->response->json('page');
+        $page = $this->response->json('page');
+        if (!is_null($page)) {
+            return $page;
+        }
+
+        $offset = $this->response->json('offset');
+        $limit = $this->response->json('limit');
+        if (!is_null($offset) && !is_null($limit)) {
+            return ceil($offset / $limit) + 1;
+        }
+
+        return null;
     }
 
     public function getTotalPages(): ?int
     {
-        return $this->response->json('totalPages');
+        $totalPages = $this->response->json('totalPages');
+        if (!is_null($totalPages)) {
+            return $totalPages;
+        }
+
+        $limit = $this->getHitsPerPage();
+        if (!is_null($limit)) {
+            $totalHits = $this->getTotalHits();
+            if (!is_null($totalHits)) {
+                return ceil($totalHits / $limit);
+            }
+        }
+
+        return null;
     }
 
     public function getTotalHits(): ?int
     {
         /**
-         * A paginated result will have the key 'totalHits'
+         * A paginated result will have the key 'totalHits' or 'total'
          * A non-paginated result will have 'estimatedTotalHits'
          */
-        return $this->response->json('totalHits') ?? $this->response->json('estimatedTotalHits');
+        return $this->response->json('totalHits') ?? $this->response->json('estimatedTotalHits') ?? $this->response->json('total');
     }
 
     public function getHitsPerPage(): ?int
     {
-        return $this->response->json('hitsPerPage');
+        return $this->response->json('hitsPerPage') ?? $this->response->json('limit');
     }
 
     public function getIterator(): \ArrayIterator

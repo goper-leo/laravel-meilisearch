@@ -6,6 +6,7 @@ use Eelcol\LaravelMeilisearch\Connector\Collections\MeilisearchDocumentsCollecti
 use Eelcol\LaravelMeilisearch\Connector\Collections\MeilisearchFacetValuesCollection;
 use Eelcol\LaravelMeilisearch\Connector\Collections\MeilisearchIndexCollection;
 use Eelcol\LaravelMeilisearch\Connector\Collections\MeilisearchQueryCollection;
+use Eelcol\LaravelMeilisearch\Connector\Collections\MeilisearchTasksCollection;
 use Eelcol\LaravelMeilisearch\Connector\MeilisearchConnector;
 use Eelcol\LaravelMeilisearch\Connector\MeilisearchResponse;
 use Eelcol\LaravelMeilisearch\Connector\Models\MeilisearchDocument;
@@ -53,6 +54,7 @@ use Illuminate\Support\Facades\Facade;
  * @method static MeilisearchResponse getFacetingSettings(string $index)
  * @method static MeilisearchHealth getHealth()
  * @method static MeilisearchTask getTask(int $taskId)
+ * @method static MeilisearchTasksCollection getTasks()
  * @method static string getVersion()
  *
  * @see MeilisearchConnector
